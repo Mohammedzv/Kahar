@@ -1,31 +1,31 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام كاشير الهواتف - SkyPOS</title>
-<script src="https://unpkg.com/html5-qrcode"></script>
-<style>
-  :root {
-    --primary: #87ceeb; /* أزرق سماوي */
-    --primary-dark: #00bfff;
-    --bg: #f0f8ff;
-    --card: #ffffff;
-    --text: #333;
-    --accent: #4682b4;
-  }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-  .container { max-width: 900px; margin: auto; background: var(--card); padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-  .header { text-align: center; margin-bottom: 30px; }
-  h1 { color: var(--accent); }
-  .scanner-box { width: 100%; max-width: 400px; margin: 0 auto 20px auto; border: 2px solid var(--primary); border-radius: 10px; overflow: hidden; }
-  .input-group { margin-bottom: 15px; }
-  input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-  .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
-  .btn:hover { background: var(--primary-dark); }
-  .alert { background: #ffe4e1; color: #d8000c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffb6c1; display: none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>نظام كاشير الهواتف - SkyPOS</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --primary: #87ceeb;
+            --primary-dark: #00bfff;
+            --bg: #f0f8ff;
+            --card: #ffffff;
+            --text: #333;
+            --accent: #4682b4;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
+        .container { max-width: 600px; margin: auto; background: var(--card); padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .header { text-align: center; margin-bottom: 25px; }
+        h1 { color: var(--accent); font-size: 26px; margin: 0; }
+        .scanner-box { width: 100%; height: 250px; margin-bottom: 20px; border: 3px solid var(--primary); border-radius: 15px; overflow: hidden; background: #eee; }
+        .input-group { margin-bottom: 15px; }
+        label { font-size: 14px; font-weight: bold; color: var(--accent); }
+        input { width: 100%; padding: 14px; margin-top: 8px; border: 2px solid #e1e1e1; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
+        .btn { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; font-size: 18px; transition: 0.3s; }
+        .btn:hover { background: var(--primary-dark); transform: scale(1.02); }
+        .alert { background: #ffe4e1; color: #d8000c; padding: 12px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffb6c1; display: none; font-weight: bold; }
+    </style>
 </head>
 <body>
 
@@ -39,16 +39,17 @@
     <div class="scanner-box" id="reader"></div>
 
     <div class="input-group">
-        <input type="text" id="shopName" placeholder="اسم المحل (مثال: متجر النخبة)">
+        <label>بيانات المحل والعميل</label>
+        <input type="text" id="shopName" placeholder="اسم المحل">
         <input type="text" id="customerName" placeholder="اسم العميل">
     </div>
 
     <input type="text" id="productIdInput" placeholder="رقم المنتج (الباركود)">
-    <button class="btn" onclick="processSale()" style="margin-top: 10px;">إتمام البيع وطباعة الفاتورة</button>
+    <button class="btn" onclick="processSale()" style="margin-top: 15px;">إتمام البيع وطباعة الفاتورة</button>
 </div>
 
 <script>
-// 1. نظام ماسح الباركود
+// تشغيل الماسح الضوئي
 function startScanner() {
     const html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
@@ -58,10 +59,10 @@ function startScanner() {
         document.getElementById('productIdInput').value = decodedText;
         html5QrCode.stop();
       }
-    ).catch(err => console.log("الكاميرا لا تعمل"));
+    ).catch(err => console.log("الكاميرا قيد الاستخدام أو غير متاحة"));
 }
 
-// 2. التحقق من المخزن
+// التحقق من المخزن
 function checkLowStock() {
     let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
     let low = products.filter(p => p.stock <= 5);
@@ -72,7 +73,7 @@ function checkLowStock() {
     }
 }
 
-// 3. طباعة الفاتورة
+// طباعة الفاتورة
 function processSale() {
     let shop = document.getElementById('shopName').value || "متجر SkyPOS";
     let customer = document.getElementById('customerName').value || "عميل عام";
@@ -80,17 +81,17 @@ function processSale() {
     
     let win = window.open('', '_blank');
     win.document.write(`
-        <div style="text-align:center; direction:rtl; font-family:sans-serif;">
+        <div style="text-align:center; direction:rtl; font-family:sans-serif; padding: 20px;">
             <h1>${shop}</h1>
             <p>العميل: ${customer}</p>
             <hr>
-            <p>تم شراء المنتج: ${product}</p>
+            <p>المنتج المباع: ${product}</p>
             <p>شكراً لتعاملكم معنا</p>
         </div>
     `);
     win.print();
     
-    // سجل المشتريات
+    // حفظ سجل المشتريات
     let log = JSON.parse(localStorage.getItem('purchase_history') || '[]');
     log.push({item: product, date: new Date().toLocaleString()});
     localStorage.setItem('purchase_history', JSON.stringify(log));
