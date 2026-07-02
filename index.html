@@ -3,42 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الكاشير TOP STORE</title>
+    <title>نظام الكاشير المتطور - Elalmy</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 15px; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 15px; }
         .page { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .active { display: block; }
         .btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; font-weight: bold; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .alert-btn { background: #e74c3c; }
-        .total-box { background: #87ceeb; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-weight: bold; font-size: 18px; color: white; }
+        .cart-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px; }
     </style>
 </head>
 <body>
 
-<!-- الصفحة الرئيسية (الكاشير) -->
+<!-- الرئيسية -->
 <div id="home" class="page active">
-    <h2>📱 كاشير TOP STORE</h2>
-    <input type="text" id="manualName" placeholder="اسم المنتج">
-    <input type="number" id="manualPrice" placeholder="السعر">
-    <button class="btn" style="background:#27ae60" onclick="manualSale()">إتمام البيع وطباعة الفاتورة</button>
-    
-    <input type="text" id="barcode" placeholder="الماسح الخارجي هنا..." autofocus onchange="processBarcode(this.value)">
-    
-    <button class="btn" onclick="showPage('addProd')">➕ إضافة منتجات للمخزن</button>
-    <button class="btn" onclick="showPage('sales')">💰 إدارة الحسابات</button>
-    <button class="btn alert-btn" onclick="resetDay()">🔄 تجديد اليوم</button>
-</div>
-
-<!-- صفحة الإضافة -->
-<div id="addProd" class="page">
-    <h2>➕ إضافة للمخزن</h2>
+    <h2>📱 كاشير البيع</h2>
     <input type="text" id="pName" placeholder="اسم المنتج">
-    <button class="btn" onclick="alert('تم الحفظ في المخزن!')">حفظ</button>
-    <button class="btn" style="background:#7f8c8d" onclick="showPage('home')">رجوع</button>
+    <input type="number" id="pPrice" placeholder="السعر">
+    <button class="btn" style="background:#f39c12" onclick="addToCart()">➕ إضافة للسلة</button>
+    
+    <div id="cart" style="margin: 15px 0; border: 2px dashed #3498db; padding: 10px;">
+        <h3>🛒 السلة الحالية:</h3>
+        <div id="cartItems"></div>
+        <button class="btn" style="background:#27ae60" onclick="checkout()">✅ إتمام البيع وطباعة الفاتورة</button>
+    </div>
+
+    <button class="btn" onclick="showPage('sales')">💰 إدارة الحسابات</button>
+    <button class="btn" style="background:#e74c3c" onclick="resetDay()">🔄 تجديد اليوم</button>
 </div>
 
-<!-- صفحة الحسابات -->
+<!-- الحسابات -->
 <div id="sales" class="page">
     <h2>💰 سجل المبيعات</h2>
     <div id="salesLog"></div>
@@ -46,72 +40,67 @@
 </div>
 
 <script>
+    let cart = [];
+
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
-        if(pageId === 'home') document.getElementById('barcode').focus();
     }
 
-    function printReceipt(name, price) {
+    function addToCart() {
+        let name = document.getElementById('pName').value;
+        let price = parseFloat(document.getElementById('pPrice').value);
+        if(!name || !price) return alert("اكتب البيانات!");
+        cart.push({name, price});
+        renderCart();
+        document.getElementById('pName').value = "";
+        document.getElementById('pPrice').value = "";
+    }
+
+    function renderCart() {
+        document.getElementById('cartItems').innerHTML = cart.map((item, i) => 
+            `<div class="cart-item">${item.name} - ${item.price} ج.م</div>`).join('');
+    }
+
+    function checkout() {
+        if(cart.length === 0) return alert("السلة فارغة!");
+        let total = cart.reduce((sum, item) => sum + item.price, 0);
+        
+        // حفظ في الحسابات
+        let log = JSON.parse(localStorage.getItem('sales') || '[]');
+        log.push({cart: [...cart], total, date: new Date().toLocaleTimeString()});
+        localStorage.setItem('sales', JSON.stringify(log));
+        
+        // طباعة الفاتورة
         let win = window.open('', '_blank', 'width=400,height=500');
-        win.document.write(`
-            <div style="text-align:center; direction:rtl; font-family:sans-serif;">
-                <h1>TOP STORE</h1>
-                <p>المنتج: ${name}</p>
-                <p>السعر: ${price} ج.م</p>
-                <hr><p>لتحويل فودافون كاش 01033160942</p>
-                <p>شكراً لتعاملكم معنا</p>
-            </div>
-        `);
+        win.document.write(`<div style="direction:rtl; text-align:center;">
+            <h1>محل Elalmy</h1>
+            ${cart.map(i => `<p>${i.name}: ${i.price} ج.م</p>`).join('')}
+            <hr><h3>الإجمالي: ${total} ج.م</h3>
+        </div>`);
         win.print();
-    }
-
-    function manualSale() {
-        let name = document.getElementById('manualName').value;
-        let price = document.getElementById('manualPrice').value;
-        if(!name || !price) return alert("يرجى إدخال الاسم والسعر!");
         
-        let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        log.push({name, price, date: new Date().toLocaleTimeString()});
-        localStorage.setItem('sales', JSON.stringify(log));
-        
-        printReceipt(name, price);
+        cart = [];
+        renderCart();
         renderSales();
-        document.getElementById('manualName').value = "";
-        document.getElementById('manualPrice').value = "";
-    }
-
-    function processBarcode(code) {
-        let price = "0"; // يمكنك ربطها بقاعدة بيانات لاحقاً
-        recordSale("منتج باركود: " + code, price);
-        document.getElementById('barcode').value = "";
-    }
-
-    function recordSale(name, price) {
-        let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        log.push({name, price, date: new Date().toLocaleTimeString()});
-        localStorage.setItem('sales', JSON.stringify(log));
-        renderSales();
-    }
-
-    function resetDay() {
-        if(confirm("هل أنت متأكد من مسح سجلات اليوم؟")) {
-            localStorage.removeItem('sales');
-            renderSales();
-            alert("تم تجديد اليوم بنجاح!");
-        }
     }
 
     function renderSales() {
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        let salesLogDiv = document.getElementById('salesLog');
-        let total = log.reduce((sum, item) => sum + parseFloat(item.price || 0), 0);
-        
-        salesLogDiv.innerHTML = `<div class="total-box">إجمالي مبيعات اليوم: ${total} ج.م</div>` + 
-            log.map(s => `<p style="border-bottom:1px solid #eee; padding:5px;">${s.name} - <b>${s.price} ج.م</b></p>`).join('');
+        let totalDay = log.reduce((sum, item) => sum + item.total, 0);
+        document.getElementById('salesLog').innerHTML = `<h3>إجمالي اليوم: ${totalDay} ج.م</h3>` +
+            log.map(s => `<p>فاتورة: ${s.total} ج.م (${s.date})</p>`).join('');
+    }
+
+    function resetDay() {
+        if(confirm("مسح كل شيء؟")) {
+            localStorage.removeItem('sales');
+            renderSales();
+        }
     }
 
     window.onload = renderSales;
 </script>
 </body>
 </html>
+
