@@ -2,102 +2,79 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام كاشير الهواتف - SkyPOS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام كاشير SkyPOS المتكامل</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root {
-            --primary: #87ceeb;
-            --primary-dark: #00bfff;
-            --bg: #f0f8ff;
-            --card: #ffffff;
-            --text: #333;
-            --accent: #4682b4;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
-        .container { max-width: 600px; margin: auto; background: var(--card); padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-        .header { text-align: center; margin-bottom: 25px; }
-        h1 { color: var(--accent); font-size: 26px; margin: 0; }
-        .scanner-box { width: 100%; height: 250px; margin-bottom: 20px; border: 3px solid var(--primary); border-radius: 15px; overflow: hidden; background: #eee; }
-        .input-group { margin-bottom: 15px; }
-        label { font-size: 14px; font-weight: bold; color: var(--accent); }
-        input { width: 100%; padding: 14px; margin-top: 8px; border: 2px solid #e1e1e1; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
-        .btn { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; font-size: 18px; transition: 0.3s; }
-        .btn:hover { background: var(--primary-dark); transform: scale(1.02); }
-        .alert { background: #ffe4e1; color: #d8000c; padding: 12px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffb6c1; display: none; font-weight: bold; }
+        :root { --primary: #87ceeb; --accent: #4682b4; --bg: #f0f8ff; }
+        body { font-family: sans-serif; background: var(--bg); padding: 10px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>📱 SkyPOS للهواتف</h1>
-    </div>
+<div class="card">
+    <h2>➕ إدارة المخزن</h2>
+    <input type="text" id="pName" placeholder="اسم المنتج">
+    <input type="number" id="pPrice" placeholder="السعر">
+    <input type="number" id="pStock" placeholder="الكمية">
+    <button onclick="addProduct()">حفظ المنتج</button>
+</div>
 
-    <div id="lowStockAlert" class="alert"></div>
+<div class="card">
+    <h2>📱 الكاشير</h2>
+    <div id="reader" style="width: 100%; height: 200px; border: 2px solid var(--primary);"></div>
+    <input type="text" id="custName" placeholder="اسم العميل">
+    <button onclick="sellProduct()" style="background: var(--accent);">إتمام البيع وطباعة الفاتورة</button>
+</div>
 
-    <div class="scanner-box" id="reader"></div>
-
-    <div class="input-group">
-        <label>بيانات المحل والعميل</label>
-        <input type="text" id="shopName" placeholder="اسم المحل">
-        <input type="text" id="customerName" placeholder="اسم العميل">
-    </div>
-
-    <input type="text" id="productIdInput" placeholder="رقم المنتج (الباركود)">
-    <button class="btn" onclick="processSale()" style="margin-top: 15px;">إتمام البيع وطباعة الفاتورة</button>
+<div class="card">
+    <h2>📋 المخزون الحالي</h2>
+    <table id="stockTable">
+        <tr><th>المنتج</th><th>السعر</th><th>الكمية</th></tr>
+    </table>
 </div>
 
 <script>
-// تشغيل الماسح الضوئي
-function startScanner() {
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" }, 
-      { fps: 10, qrbox: 200 },
-      (decodedText) => {
-        document.getElementById('productIdInput').value = decodedText;
-        html5QrCode.stop();
-      }
-    ).catch(err => console.log("الكاميرا قيد الاستخدام أو غير متاحة"));
-}
-
-// التحقق من المخزن
-function checkLowStock() {
-    let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
-    let low = products.filter(p => p.stock <= 5);
-    if(low.length > 0) {
-        let alertBox = document.getElementById('lowStockAlert');
-        alertBox.style.display = 'block';
-        alertBox.innerHTML = '⚠️ تنبيه: ' + low.map(p => p.name).join(', ') + ' على وشك النفاد!';
+    // حفظ منتج
+    function addProduct() {
+        let list = JSON.parse(localStorage.getItem('pos_products') || '[]');
+        list.push({name: document.getElementById('pName').value, price: document.getElementById('pPrice').value, stock: parseInt(document.getElementById('pStock').value)});
+        localStorage.setItem('pos_products', JSON.stringify(list));
+        location.reload();
     }
-}
 
-// طباعة الفاتورة
-function processSale() {
-    let shop = document.getElementById('shopName').value || "متجر SkyPOS";
-    let customer = document.getElementById('customerName').value || "عميل عام";
-    let product = document.getElementById('productIdInput').value;
-    
-    let win = window.open('', '_blank');
-    win.document.write(`
-        <div style="text-align:center; direction:rtl; font-family:sans-serif; padding: 20px;">
-            <h1>${shop}</h1>
-            <p>العميل: ${customer}</p>
-            <hr>
-            <p>المنتج المباع: ${product}</p>
-            <p>شكراً لتعاملكم معنا</p>
-        </div>
-    `);
-    win.print();
-    
-    // حفظ سجل المشتريات
-    let log = JSON.parse(localStorage.getItem('purchase_history') || '[]');
-    log.push({item: product, date: new Date().toLocaleString()});
-    localStorage.setItem('purchase_history', JSON.stringify(log));
-}
+    // عرض المخزون
+    function renderStock() {
+        let list = JSON.parse(localStorage.getItem('pos_products') || '[]');
+        let table = document.getElementById('stockTable');
+        list.forEach(p => {
+            table.innerHTML += `<tr><td>${p.name}</td><td>${p.price}</td><td>${p.stock}</td></tr>`;
+            if(p.stock <= 5) alert("تنبيه: " + p.name + " قارب على النفاد!");
+        });
+    }
 
-window.onload = () => { startScanner(); checkLowStock(); };
+    // عملية بيع
+    function sellProduct() {
+        let name = document.getElementById('pName').value; // للتبسيط
+        let list = JSON.parse(localStorage.getItem('pos_products') || '[]');
+        let p = list.find(x => x.name == name);
+        if(p && p.stock > 0) {
+            p.stock--;
+            localStorage.setItem('pos_products', JSON.stringify(list));
+            alert("تم البيع للعميل: " + document.getElementById('custName').value);
+            window.print();
+        }
+    }
+
+    // تشغيل الماسح
+    new Html5Qrcode("reader").start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (t) => { document.getElementById('pName').value = t; });
+    
+    window.onload = renderStock;
 </script>
 </body>
 </html>
