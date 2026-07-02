@@ -1,24 +1,51 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>نظام كاشير الهواتف - Elalmy POS</title>
-    <script src="https://unpkg.com/html5-qrcode"></script> <!-- مكتبة ماسح الباركود -->
-    <style>
-        /* إضافة ستايلات خاصة بالتنبيهات */
-        .low-stock-alert { background: #ff3d71; color: white; padding: 10px; display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام كاشير الهواتف - SkyPOS</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+  :root {
+    --primary: #87ceeb; /* أزرق سماوي */
+    --primary-dark: #00bfff;
+    --bg: #f0f8ff;
+    --card: #ffffff;
+    --text: #333;
+    --accent: #4682b4;
+  }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+  .container { max-width: 900px; margin: auto; background: var(--card); padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+  .header { text-align: center; margin-bottom: 30px; }
+  h1 { color: var(--accent); }
+  .scanner-box { width: 100%; max-width: 400px; margin: 0 auto 20px auto; border: 2px solid var(--primary); border-radius: 10px; overflow: hidden; }
+  .input-group { margin-bottom: 15px; }
+  input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+  .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+  .btn:hover { background: var(--primary-dark); }
+  .alert { background: #ffe4e1; color: #d8000c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffb6c1; display: none; }
+</style>
 </head>
 <body>
 
-<div id="lowStockBanner" class="low-stock-alert">⚠️ تنبيه: بعض قطع الغيار أو الهواتف على وشك النفاد!</div>
+<div class="container">
+    <div class="header">
+        <h1>📱 SkyPOS للهواتف</h1>
+    </div>
 
-<!-- واجهة ماسح الباركود -->
-<div id="reader" style="width: 300px;"></div>
+    <div id="lowStockAlert" class="alert"></div>
 
-<!-- حقول بيانات العميل -->
-<input type="text" id="customerName" placeholder="اسم العميل">
-<input type="text" id="shopName" value="محل موبايلات Elalmy" placeholder="اسم المحل">
+    <div class="scanner-box" id="reader"></div>
+
+    <div class="input-group">
+        <input type="text" id="shopName" placeholder="اسم المحل (مثال: متجر النخبة)">
+        <input type="text" id="customerName" placeholder="اسم العميل">
+    </div>
+
+    <input type="text" id="productIdInput" placeholder="رقم المنتج (الباركود)">
+    <button class="btn" onclick="processSale()" style="margin-top: 10px;">إتمام البيع وطباعة الفاتورة</button>
+</div>
 
 <script>
 // 1. نظام ماسح الباركود
@@ -26,54 +53,50 @@ function startScanner() {
     const html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
       { facingMode: "environment" }, 
-      { fps: 10, qrbox: 250 },
+      { fps: 10, qrbox: 200 },
       (decodedText) => {
         document.getElementById('productIdInput').value = decodedText;
-        // هنا يتم استدعاء دالة إضافة المنتج للسلة تلقائياً
         html5QrCode.stop();
       }
-    ).catch(err => console.log(err));
+    ).catch(err => console.log("الكاميرا لا تعمل"));
 }
 
-// 2. نظام تنبيه المخزن
+// 2. التحقق من المخزن
 function checkLowStock() {
-  const low = products.filter(p => p.stock <= 5 && p.stock > 0);
-  const banner = document.getElementById('lowStockBanner');
-  if (low.length > 0) {
-    banner.style.display = 'block';
-    banner.textContent = `⚠️ تنبيه: ${low.map(p=>p.name).join(' | ')} على وشك النفاد!`;
-  }
+    let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
+    let low = products.filter(p => p.stock <= 5);
+    if(low.length > 0) {
+        let alertBox = document.getElementById('lowStockAlert');
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = '⚠️ تنبيه: ' + low.map(p => p.name).join(', ') + ' على وشك النفاد!';
+    }
 }
 
-// 3. طباعة الفاتورة ببيانات المحل والعميل
-function printReceipt(items, total) {
-    let shop = document.getElementById('shopName').value;
-    let customer = document.getElementById('customerName').value;
-    let receiptWindow = window.open('', '_blank');
-    receiptWindow.document.write(`
-        <div style="text-align:center;">
+// 3. طباعة الفاتورة
+function processSale() {
+    let shop = document.getElementById('shopName').value || "متجر SkyPOS";
+    let customer = document.getElementById('customerName').value || "عميل عام";
+    let product = document.getElementById('productIdInput').value;
+    
+    let win = window.open('', '_blank');
+    win.document.write(`
+        <div style="text-align:center; direction:rtl; font-family:sans-serif;">
             <h1>${shop}</h1>
             <p>العميل: ${customer}</p>
             <hr>
-            <p>الإجمالي: ${total} جنيه</p>
+            <p>تم شراء المنتج: ${product}</p>
+            <p>شكراً لتعاملكم معنا</p>
         </div>
     `);
-    receiptWindow.print();
+    win.print();
+    
+    // سجل المشتريات
+    let log = JSON.parse(localStorage.getItem('purchase_history') || '[]');
+    log.push({item: product, date: new Date().toLocaleString()});
+    localStorage.setItem('purchase_history', JSON.stringify(log));
 }
 
-// 4. سجل المشتريات
-function logPurchase(productName, qty) {
-    let history = JSON.parse(localStorage.getItem('purchase_history') || '[]');
-    history.push({ item: productName, count: qty, date: new Date().toLocaleString('ar-EG') });
-    localStorage.setItem('purchase_history', JSON.stringify(history));
-}
-
-// تشغيل النظام عند التحميل
-window.onload = () => {
-    checkLowStock();
-    startScanner();
-};
+window.onload = () => { startScanner(); checkLowStock(); };
 </script>
 </body>
 </html>
-
