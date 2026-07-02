@@ -3,44 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الكاشير الاحترافي</title>
+    <title>نظام الكاشير - SkyPOS Pro</title>
     <style>
         body { font-family: sans-serif; background: #eef2f3; padding: 15px; }
         .page { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .active { display: block; }
-        .btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; }
+        .btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; font-weight: bold; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .alert-btn { background: #e74c3c; }
     </style>
 </head>
 <body>
 
-<!-- الصفحة الرئيسية (الكاشير) -->
+<!-- الرئيسية -->
 <div id="home" class="page active">
-    <h2>📱 كاشير البيع</h2>
-    <!-- إضافة يدوية -->
-    <input type="text" id="manualName" placeholder="اسم المنتج (إضافة يدوية)">
+    <h2>📱 كاشير البيع - SkyPOS</h2>
+    <input type="text" id="manualName" placeholder="اسم المنتج">
     <input type="number" id="manualPrice" placeholder="السعر">
-    <button class="btn" style="background:#27ae60" onclick="manualSale()">بيع يدوي</button>
+    <button class="btn" style="background:#27ae60" onclick="manualSale()">إتمام البيع وطباعة الفاتورة</button>
     
-    <hr>
-    
-    <!-- ماسح الباركود -->
-    <input type="text" id="barcode" placeholder="امسح الباركود هنا..." autofocus onchange="processBarcode(this.value)">
+    <input type="text" id="barcode" placeholder="الماسح الخارجي هنا..." autofocus onchange="processBarcode(this.value)">
     
     <button class="btn" onclick="showPage('addProd')">➕ إضافة منتجات للمخزن</button>
     <button class="btn" onclick="showPage('sales')">💰 إدارة الحسابات</button>
+    <button class="btn alert-btn" onclick="resetDay()">🔄 تجديد اليوم (مسح سجلات)</button>
 </div>
 
-<!-- صفحة إضافة المنتجات -->
+<!-- صفحات الإضافة والحسابات -->
 <div id="addProd" class="page">
-    <h2>➕ إضافة منتج</h2>
+    <h2>➕ إضافة للمخزن</h2>
     <input type="text" id="pName" placeholder="اسم المنتج">
-    <input type="number" id="pPrice" placeholder="السعر">
-    <button class="btn" onclick="saveProduct()">حفظ في المخزن</button>
+    <button class="btn" onclick="alert('تم الحفظ في المخزن!')">حفظ</button>
     <button class="btn" style="background:#7f8c8d" onclick="showPage('home')">رجوع</button>
 </div>
 
-<!-- صفحة الحسابات -->
 <div id="sales" class="page">
     <h2>💰 سجل المبيعات</h2>
     <div id="salesLog"></div>
@@ -54,40 +50,43 @@
         if(pageId === 'home') document.getElementById('barcode').focus();
     }
 
-    // بيع يدوي
+    function printReceipt(name, price) {
+        let win = window.open('', '_blank', 'width=400,height=500');
+        win.document.write(`
+            <div style="text-align:center; direction:rtl; font-family:sans-serif;">
+                <h1>محل موبايلات Elalmy</h1>
+                <p>المنتج: ${name}</p>
+                <p>السعر: ${price} ج.م</p>
+                <hr><p>شكراً لتعاملكم معنا</p>
+            </div>
+        `);
+        win.print();
+    }
+
     function manualSale() {
         let name = document.getElementById('manualName').value;
         let price = document.getElementById('manualPrice').value;
         if(!name) return alert("اكتب اسم المنتج!");
-        recordSale(name, price);
-    }
-
-    // بيع بالماسح
-    function processBarcode(code) {
-        recordSale("منتج باركود: " + code, "مسح ضوئي");
-        document.getElementById('barcode').value = "";
-    }
-
-    // تسجيل البيع
-    function recordSale(name, price) {
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
         log.push({name, price, date: new Date().toLocaleTimeString()});
         localStorage.setItem('sales', JSON.stringify(log));
-        alert("تم البيع بنجاح!");
+        printReceipt(name, price);
         renderSales();
+    }
+
+    function resetDay() {
+        if(confirm("هل أنت متأكد من مسح سجلات اليوم؟")) {
+            localStorage.removeItem('sales');
+            renderSales();
+            alert("تم تجديد اليوم بنجاح!");
+        }
     }
 
     function renderSales() {
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        document.getElementById('salesLog').innerHTML = log.map(s => `<p>${s.name} - ${s.price}</p>`).join('');
+        document.getElementById('salesLog').innerHTML = log.map(s => `<p>${s.name} - ${s.price} ج.م</p>`).join('');
     }
 
-    function saveProduct() {
-        // منطق الحفظ في المخزن
-        alert("تم الحفظ في المخزن!");
-        showPage('home');
-    }
-    
     window.onload = renderSales;
 </script>
 </body>
