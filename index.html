@@ -8,9 +8,10 @@
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 15px; }
         .page { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .active { display: block; }
-        .btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn { background: #3498db; color: white; border: none; padding: 10px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; font-weight: bold; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .cart-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px; }
+        .log-item { background: #f9f9f9; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -45,6 +46,7 @@
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
+        if(pageId === 'sales') renderSales();
     }
 
     function addToCart() {
@@ -58,38 +60,48 @@
     }
 
     function renderCart() {
-        document.getElementById('cartItems').innerHTML = cart.map((item, i) => 
+        document.getElementById('cartItems').innerHTML = cart.map((item) => 
             `<div class="cart-item">${item.name} - ${item.price} ج.م</div>`).join('');
     }
 
     function checkout() {
         if(cart.length === 0) return alert("السلة فارغة!");
         let total = cart.reduce((sum, item) => sum + item.price, 0);
+        let saleEntry = {cart: [...cart], total, date: new Date().toLocaleTimeString()};
         
-        // حفظ في الحسابات
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        log.push({cart: [...cart], total, date: new Date().toLocaleTimeString()});
+        log.push(saleEntry);
         localStorage.setItem('sales', JSON.stringify(log));
         
-        // طباعة الفاتورة
-        let win = window.open('', '_blank', 'width=400,height=500');
-        win.document.write(`<div style="direction:rtl; text-align:center;">
-            <h1>محل Elalmy</h1>
-            ${cart.map(i => `<p>${i.name}: ${i.price} ج.م</p>`).join('')}
-            <hr><h3>الإجمالي: ${total} ج.م</h3>
-        </div>`);
-        win.print();
-        
+        printReceipt(saleEntry);
         cart = [];
         renderCart();
-        renderSales();
+    }
+
+    function printReceipt(entry) {
+        let win = window.open('', '_blank', 'width=400,height=500');
+        win.document.write(`<div style="direction:rtl; text-align:center; font-family:sans-serif;">
+            <h1>محل Elalmy</h1>
+            ${entry.cart.map(i => `<p>${i.name}: ${i.price} ج.م</p>`).join('')}
+            <hr><h3>الإجمالي: ${entry.total} ج.م</h3>
+        </div>`);
+        win.print();
     }
 
     function renderSales() {
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
         let totalDay = log.reduce((sum, item) => sum + item.total, 0);
         document.getElementById('salesLog').innerHTML = `<h3>إجمالي اليوم: ${totalDay} ج.م</h3>` +
-            log.map(s => `<p>فاتورة: ${s.total} ج.م (${s.date})</p>`).join('');
+            log.map((s, index) => `
+                <div class="log-item">
+                    <span>فاتورة ${s.date} - ${s.total} ج.م</span>
+                    <button class="btn" style="width:auto; margin:0;" onclick="viewReceipt(${index})">عرض</button>
+                </div>`).join('');
+    }
+
+    function viewReceipt(index) {
+        let log = JSON.parse(localStorage.getItem('sales') || '[]');
+        printReceipt(log[index]);
     }
 
     function resetDay() {
@@ -103,4 +115,3 @@
 </script>
 </body>
 </html>
-
