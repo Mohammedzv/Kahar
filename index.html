@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الكاشير المتطور - Elalmy</title>
+    <title>كاشير TOP STORE</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 15px; }
         .page { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
@@ -18,7 +18,7 @@
 
 <!-- الرئيسية -->
 <div id="home" class="page active">
-    <h2>📱 كاشير البيع</h2>
+    <h2>📱 كاشير TOP STORE</h2>
     <input type="text" id="pName" placeholder="اسم المنتج">
     <input type="number" id="pPrice" placeholder="السعر">
     <button class="btn" style="background:#f39c12" onclick="addToCart()">➕ إضافة للسلة</button>
@@ -81,9 +81,10 @@
     function printReceipt(entry) {
         let win = window.open('', '_blank', 'width=400,height=500');
         win.document.write(`<div style="direction:rtl; text-align:center; font-family:sans-serif;">
-            <h1>محل Elalmy</h1>
+            <h1>TOP STORE</h1>
             ${entry.cart.map(i => `<p>${i.name}: ${i.price} ج.م</p>`).join('')}
             <hr><h3>الإجمالي: ${entry.total} ج.م</h3>
+            <p></p><p>لتحويل فودافون كاش ع رقم 01033160942 عنوان المحل قبضايا-بجوار كافيه الهضبه</p>
         </div>`);
         win.print();
     }
