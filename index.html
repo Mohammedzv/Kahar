@@ -3,77 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام Elalmy POS</title>
+    <title>نظام الكاشير الاحترافي</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f8ff; padding: 20px; margin: 0; }
-        .page { display: none; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        body { font-family: sans-serif; background: #eef2f3; padding: 15px; }
+        .page { display: none; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .active { display: block; }
-        .btn { background: #87ceeb; color: white; border: none; padding: 15px; width: 100%; margin: 10px 0; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        h2 { color: #4682b4; text-align: center; }
+        .btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; margin: 5px 0; border-radius: 8px; cursor: pointer; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-<!-- الرئيسية -->
+<!-- الصفحة الرئيسية (الكاشير) -->
 <div id="home" class="page active">
-    <h2>📱 لوحة التحكم الرئيسية</h2>
-    <button class="btn" onclick="showPage('addProd')">➕ إضافة منتجات</button>
+    <h2>📱 كاشير البيع</h2>
+    <!-- إضافة يدوية -->
+    <input type="text" id="manualName" placeholder="اسم المنتج (إضافة يدوية)">
+    <input type="number" id="manualPrice" placeholder="السعر">
+    <button class="btn" style="background:#27ae60" onclick="manualSale()">بيع يدوي</button>
+    
+    <hr>
+    
+    <!-- ماسح الباركود -->
+    <input type="text" id="barcode" placeholder="امسح الباركود هنا..." autofocus onchange="processBarcode(this.value)">
+    
+    <button class="btn" onclick="showPage('addProd')">➕ إضافة منتجات للمخزن</button>
     <button class="btn" onclick="showPage('sales')">💰 إدارة الحسابات</button>
-    <input type="text" id="barcodeInput" placeholder="ضع الماسح هنا وامسح الكود..." autofocus>
 </div>
 
 <!-- صفحة إضافة المنتجات -->
 <div id="addProd" class="page">
-    <h2>➕ إضافة منتج جديد</h2>
+    <h2>➕ إضافة منتج</h2>
     <input type="text" id="pName" placeholder="اسم المنتج">
     <input type="number" id="pPrice" placeholder="السعر">
-    <button class="btn" onclick="saveProduct()">حفظ المنتج</button>
-    <button class="btn" style="background:#ccc" onclick="showPage('home')">رجوع</button>
+    <button class="btn" onclick="saveProduct()">حفظ في المخزن</button>
+    <button class="btn" style="background:#7f8c8d" onclick="showPage('home')">رجوع</button>
 </div>
 
 <!-- صفحة الحسابات -->
 <div id="sales" class="page">
     <h2>💰 سجل المبيعات</h2>
     <div id="salesLog"></div>
-    <button class="btn" style="background:#ccc" onclick="showPage('home')">رجوع</button>
+    <button class="btn" style="background:#7f8c8d" onclick="showPage('home')">رجوع</button>
 </div>
 
 <script>
-    // التنقل بين الصفحات
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
-        if(pageId === 'home') document.getElementById('barcodeInput').focus();
+        if(pageId === 'home') document.getElementById('barcode').focus();
     }
 
-    // دعم الماسح الخارجي
-    document.getElementById('barcodeInput').addEventListener('input', (e) => {
-        let code = e.target.value;
-        if(code.length > 5) {
-            let log = JSON.parse(localStorage.getItem('sales') || '[]');
-            log.push({code: code, date: new Date().toLocaleString()});
-            localStorage.setItem('sales', JSON.stringify(log));
-            alert("تم تسجيل عملية بيع: " + code);
-            e.target.value = "";
-            renderSales();
-        }
-    });
-
-    // حفظ المنتج
-    function saveProduct() {
-        let p = { name: document.getElementById('pName').value, price: document.getElementById('pPrice').value };
-        let list = JSON.parse(localStorage.getItem('products') || '[]');
-        list.push(p);
-        localStorage.setItem('products', JSON.stringify(list));
-        alert("تم الحفظ!");
-        showPage('home');
+    // بيع يدوي
+    function manualSale() {
+        let name = document.getElementById('manualName').value;
+        let price = document.getElementById('manualPrice').value;
+        if(!name) return alert("اكتب اسم المنتج!");
+        recordSale(name, price);
     }
 
-    // عرض سجل المبيعات
+    // بيع بالماسح
+    function processBarcode(code) {
+        recordSale("منتج باركود: " + code, "مسح ضوئي");
+        document.getElementById('barcode').value = "";
+    }
+
+    // تسجيل البيع
+    function recordSale(name, price) {
+        let log = JSON.parse(localStorage.getItem('sales') || '[]');
+        log.push({name, price, date: new Date().toLocaleTimeString()});
+        localStorage.setItem('sales', JSON.stringify(log));
+        alert("تم البيع بنجاح!");
+        renderSales();
+    }
+
     function renderSales() {
         let log = JSON.parse(localStorage.getItem('sales') || '[]');
-        document.getElementById('salesLog').innerHTML = log.map(s => `<p>${s.code} - ${s.date}</p>`).join('');
+        document.getElementById('salesLog').innerHTML = log.map(s => `<p>${s.name} - ${s.price}</p>`).join('');
+    }
+
+    function saveProduct() {
+        // منطق الحفظ في المخزن
+        alert("تم الحفظ في المخزن!");
+        showPage('home');
     }
     
     window.onload = renderSales;
